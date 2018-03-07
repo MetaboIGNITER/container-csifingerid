@@ -31,4 +31,4 @@ ADD runTest1.sh /usr/local/bin/runTest1.sh
 RUN chmod +x /usr/local/bin/runTest1.sh
 
 # Define Entry point script
-#ENTRYPOINT ["java", "-cp", "/usr/local/bin/passatutto.jar"]
+
