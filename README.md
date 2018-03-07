@@ -31,7 +31,6 @@ SIRIUS and CSI:FingerID are offered to the public as freely available resources.
 - Juho Rousu
 - Sebastian Böcker
 
-
 ## Container Contributors
 
 - [Christoph Ruttkies](https://github.com/c-ruttkies) (IPB-Halle)
