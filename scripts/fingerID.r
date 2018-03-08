@@ -99,7 +99,7 @@ ionization<-as.character(strsplit(splitParams[[1]][[ionizationIndex]],split = "=
 if(!is.na(PPMOverwrite))
   IonizationOverwrite<-as.character(IonizationOverwrite)
 
-cat("Ionization mass is set to \"",ionization,"\"\n")
+cat("Ionization is set to \"",ionization,"\"\n")
 if(is.na(ionization) | is.null(ionization) | ionization=="")
   stop("ionization is not defined!")
 
