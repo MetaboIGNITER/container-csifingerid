@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-
 options(stringAsfactors = FALSE, useFancyQuotes = FALSE)
 
 # Taking the command line arguments
@@ -20,7 +19,7 @@ for(arg in args)
 {
   argCase<-strsplit(x = arg,split = "=")[[1]][1]
   value<-strsplit(x = arg,split = "=")[[1]][2]
-  
+
   if(argCase=="realName")
   {
     realName=as.character(value)
@@ -49,7 +48,7 @@ for(arg in args)
   {
     outputCSV=as.character(value)
   }
-  
+
 }
 
 
@@ -99,7 +98,7 @@ ionization<-as.character(strsplit(splitParams[[1]][[ionizationIndex]],split = "=
 if(!is.na(PPMOverwrite))
   IonizationOverwrite<-as.character(IonizationOverwrite)
 
-cat("Ionization is set to \"",ionization,"\"\n")
+cat("Ionization mass is set to \"",ionization,"\"\n")
 if(is.na(ionization) | is.null(ionization) | ionization=="")
   stop("ionization is not defined!")
 
@@ -134,6 +133,7 @@ cat("Running CSI using", toCSICommand, "\n")
 
 unlink(recursive = T,x = outputFolder)
 t1<-try(system(command = toCSICommand,intern=T))
+
 
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
@@ -171,7 +171,7 @@ if(file.exists(requiredOutput))
     tmpData[tmpData$name=="\"\"","name"]<-"NONAME"
     parentRT<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][2])
     parentFile<-(strsplit(compound,split = "_",fixed = T)[[1]][4])
-    
+
     if(parentFile==".txt")
     {
       parentFile<-"NotFound"
@@ -189,7 +189,7 @@ if(file.exists(requiredOutput))
   }else{
     cat("Empty results! Nothing will be output!\n")
   }
-  
+
 }else{
   cat("Empty results! Nothing will be written out!\n")
 }

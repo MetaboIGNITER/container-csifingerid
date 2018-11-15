@@ -9,7 +9,7 @@ wget -O /tmp/testfiles/2500_47.4328704_175.0237_.txt https://github.com/phnmnl/c
 
 
 # perform test
-/usr/local/bin/fingerID.r input=/tmp/testfiles/2500_47.4328704_175.0237_.txt database=all tryOffline=T output=/tmp/testfiles/output.txt
+/usr/local/bin/fingerID.r input=/tmp/testfiles/2500_47.4328704_175.0237_.txt database=hmdb tryOffline=T output=/tmp/testfiles/output.txt
 
 # check output
 if [ ! -f /tmp/testfiles/output.txt ]; then 
