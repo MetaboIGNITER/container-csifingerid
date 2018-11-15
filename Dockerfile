@@ -22,7 +22,7 @@ RUN apt-get -y clean && apt-get -y autoremove && rm -rf /var/lib/{cache,log}/ /t
 
 
 ADD sirius-linux64-headless-4.0.1 /usr/local/bin/CSI
-sudo chmod +x /usr/local/bin/CSI/bin/sirius
+RUN chmod +x /usr/local/bin/CSI/bin/sirius
 
 ADD scripts/*.r /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.r
