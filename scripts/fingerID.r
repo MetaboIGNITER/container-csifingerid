@@ -85,7 +85,14 @@ if(is.null(ppm) | is.na(ppm))
   stop("Peak relative mass deviation is not defined!")
 
 #### create MS file
+compount<-NA
+if(!is.na(realName))
+  {
+  compound<-basename(realName)
+}else{
+  
 compound<-basename(inputMSMSparam)
+  }
 parentmass<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][3])
 cat("Parent mass is set to \"",parentmass,"\"\n")
 if(is.null(parentmass) | is.na(parentmass))
