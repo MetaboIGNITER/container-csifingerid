@@ -76,7 +76,7 @@ cat("Database is set to \"",database,"\"\n")
 if(database=="localcsv")
   stop("Local database is not supported yet! use any of the following: all, pubchem, bio, kegg, hmdb")
 
-ppmIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "DatabaseSearchRelativeMassDeviation",fixed=T)})
+ppmIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "FragmentPeakMatchRelativeMassDeviation",fixed=T)})
 ppm<-as.numeric(strsplit(splitParams[[1]][[ppmIndex]],split = "=",fixed=T)[[1]][[2]])
 if(!is.na(PPMOverwrite))
   ppm<-as.numeric(PPMOverwrite)
