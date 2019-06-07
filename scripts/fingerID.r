@@ -11,6 +11,8 @@ realName<-NA
 outputCSV<-NA
 tryOffline=F
 PPMOverwrite<-NA
+PPMPrecursorOverwrite<-NA
+absDevOverwrite<-NA
 DatabaseOverwrite<-NA
 IonizationOverwrite<-NA
 siriusPath<-"/usr/local/bin/CSI/bin/sirius"
@@ -19,7 +21,7 @@ for(arg in args)
 {
   argCase<-strsplit(x = arg,split = "=")[[1]][1]
   value<-strsplit(x = arg,split = "=")[[1]][2]
-
+  
   if(argCase=="realName")
   {
     realName=as.character(value)
@@ -36,6 +38,15 @@ for(arg in args)
   {
     PPMOverwrite=as.numeric(value)
   }
+  if(argCase=="ppmPrecursor")
+  {
+    PPMPrecursorOverwrite=as.numeric(value)
+  }
+  if(argCase=="absDev")
+  {
+    absDevOverwrite=as.numeric(value)
+  }
+  
   if(argCase=="database")
   {
     DatabaseOverwrite=as.character(value)
@@ -48,7 +59,7 @@ for(arg in args)
   {
     outputCSV=as.character(value)
   }
-
+  
 }
 
 
@@ -76,6 +87,7 @@ cat("Database is set to \"",database,"\"\n")
 if(database=="localcsv")
   stop("Local database is not supported yet! use any of the following: all, pubchem, bio, kegg, hmdb")
 
+# this is for fragments
 ppmIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "FragmentPeakMatchRelativeMassDeviation",fixed=T)})
 ppm<-as.numeric(strsplit(splitParams[[1]][[ppmIndex]],split = "=",fixed=T)[[1]][[2]])
 if(!is.na(PPMOverwrite))
@@ -84,15 +96,29 @@ cat("ppm is set to \"",ppm,"\"\n")
 if(is.null(ppm) | is.na(ppm))
   stop("Peak relative mass deviation is not defined!")
 
+
+# this is for limiting the database
+ppmIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "DatabaseSearchRelativeMassDeviation",fixed=T)})
+ppmPrecursor<-as.numeric(strsplit(splitParams[[1]][[ppmIndex]],split = "=",fixed=T)[[1]][[2]])
+if(!is.na(PPMPrecursorOverwrite))
+  ppmPrecursor<-as.numeric(PPMPrecursorOverwrite)
+cat("Peak DB relative mass deviationis set to \"",ppmPrecursor,"\"\n")
+if(is.null(ppmPrecursor) | is.na(ppmPrecursor))
+  stop("Peak DB relative mass deviation is not defined!")
+
+
+# this is for limiting the database
+absDevIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "FragmentPeakMatchAbsoluteMassDeviation",fixed=T)})
+absDev<-as.numeric(strsplit(splitParams[[1]][[absDevIndex]],split = "=",fixed=T)[[1]][[2]])
+if(!is.na(absDevOverwrite))
+  absDev<-as.numeric(absDevOverwrite)
+cat("FragmentPeak absolute mass deviation is set to \"",absDev,"\"\n")
+if(is.null(absDev) | is.na(absDev))
+  stop("FragmentPeak absolute mass deviation is not defined!")
+
+
 #### create MS file
-compount<-NA
-if(!is.na(realName))
-  {
-  compound<-basename(realName)
-}else{
-  
 compound<-basename(inputMSMSparam)
-  }
 parentmass<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][3])
 cat("Parent mass is set to \"",parentmass,"\"\n")
 if(is.null(parentmass) | is.na(parentmass))
@@ -102,8 +128,8 @@ if(is.null(parentmass) | is.na(parentmass))
 ionization<-""
 ionizationIndex<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "PrecursorIonType",fixed=T)})
 ionization<-as.character(strsplit(splitParams[[1]][[ionizationIndex]],split = "=",fixed=T)[[1]][[2]])
-if(!is.na(PPMOverwrite))
-  IonizationOverwrite<-as.character(IonizationOverwrite)
+if(!is.na(IonizationOverwrite))
+  ionization<-as.character(IonizationOverwrite)
 
 cat("Ionization mass is set to \"",ionization,"\"\n")
 if(is.na(ionization) | is.null(ionization) | ionization=="")
@@ -141,7 +167,6 @@ cat("Running CSI using", toCSICommand, "\n")
 unlink(recursive = T,x = outputFolder)
 t1<-try(system(command = toCSICommand,intern=T))
 
-
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
   cat("Online database is not available now! Trying offline mode!\n")
@@ -178,7 +203,7 @@ if(file.exists(requiredOutput))
     tmpData[tmpData$name=="\"\"","name"]<-"NONAME"
     parentRT<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][2])
     parentFile<-(strsplit(compound,split = "_",fixed = T)[[1]][4])
-
+    
     if(parentFile==".txt")
     {
       parentFile<-"NotFound"
@@ -196,7 +221,7 @@ if(file.exists(requiredOutput))
   }else{
     cat("Empty results! Nothing will be output!\n")
   }
-
+  
 }else{
   cat("Empty results! Nothing will be written out!\n")
 }
