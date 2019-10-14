@@ -1,4 +1,4 @@
-FROM container-registry.phenomenal-h2020.eu/phnmnl/rbase:dev_v3.4.1-2xenial0_cv0.2.14
+FROM metaboigniter/container-rbase:v3.4.1-1xenial0_cv0.2
 
 LABEL software.version=4.0.1
 LABEL version=4.0.1
@@ -10,7 +10,7 @@ LABEL Description="Metabolite identification"
 
 
 
-RUN R -e 'install.packages(c("R.utils","tools"),repos = "http://cran.us.r-project.org")' 
+RUN R -e 'install.packages(c("R.utils","tools"),repos = "http://cran.us.r-project.org")'
 # Update & upgrade sources
 RUN apt-get -y update
 
