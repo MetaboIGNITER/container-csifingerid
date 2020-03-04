@@ -25,10 +25,11 @@ ADD sirius-linux64-headless-4.0.1 /usr/local/bin/CSI
 
 ADD scripts/*.r /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.r
+RUN chmod +x /usr/local/bin/CSI/bin/sirius
 
 # Add testing to container
 ADD runTest1.sh /usr/local/bin/runTest1.sh
 RUN chmod +x /usr/local/bin/runTest1.sh
 
 # Define Entry point script
-#ENTRYPOINT ["java", "-cp", "/usr/local/bin/passatutto.jar"]
+
