@@ -1,4 +1,4 @@
-FROM metaboigniter/container-rbase:v3.4.1-1xenial0_cv0.2
+FROM metaboigniter/container-rbase:v4.0.2-xenial0_cv0.2
 
 LABEL software.version=4.0.1
 LABEL version=4.0.1

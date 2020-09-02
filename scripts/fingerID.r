@@ -12,6 +12,7 @@ tryOffline=F
 PPMOverwrite<-NA
 DatabaseOverwrite<-NA
 IonizationOverwrite<-NA
+timeout=1800 # this is timeout for csi. 
 siriusPath<-"/usr/local/bin/CSI/bin/sirius"
 library(tools)
 for(arg in args)
@@ -131,7 +132,7 @@ toCSICommand<-paste(siriusPath," --database ", database,
 cat("Running CSI using", toCSICommand, "\n")
 
 unlink(recursive = T,x = outputFolder)
-t1<-try(system(command = toCSICommand,intern=T))
+t1<-try(system(command = toCSICommand,intern=T,timeout = timeout))
 
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
@@ -140,7 +141,7 @@ if(any(grepl("remove the database flags -d or --database because database",t1)) 
   toCSICommand<-paste(siriusPath,
                       " --fingerid --ppm-max ",ppm," --output ",outputFolder," ",inpitToCSIFile," 2>&1",sep="")
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T))
+  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
 }
 
 if(any(grepl("just do not use any chemical database and omit the --fingerid option",t1)) & tryOffline==T)
@@ -150,13 +151,15 @@ if(any(grepl("just do not use any chemical database and omit the --fingerid opti
   toCSICommand<-paste(siriusPath,
                       " --ppm-max ",ppm," --output ",outputFolder," ",inpitToCSIFile," 2>&1",sep="")
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T))
+  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
 }
 
 
 if(!is.null(attr(t1,which = "status")) && attr(t1,which = "status")==1){
   cat("::: Error :::\n")
   stop(t1)
+}else if(!is.null(attr(t1,which = "status")) && attr(t1,which = "status")==124){
+cat("Took too long! Nothing will be output!\n")
 }
 
 cat("CSI finished! Trying to load the results ...\n")
