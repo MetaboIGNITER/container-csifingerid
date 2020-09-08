@@ -31,5 +31,5 @@ RUN chmod +x /usr/local/bin/CSI/bin/sirius
 ADD runTest1.sh /usr/local/bin/runTest1.sh
 RUN chmod +x /usr/local/bin/runTest1.sh
 
-# Define Entry point script
-
+# Install Parallel
+RUN apt-get -y install parallel

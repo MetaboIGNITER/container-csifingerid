@@ -20,6 +20,11 @@ for(arg in args)
   argCase<-strsplit(x = arg,split = "=")[[1]][1]
   value<-strsplit(x = arg,split = "=")[[1]][2]
   
+if(argCase=="timeout")
+  {
+    timeout=as.numeric(value)
+  }
+
   if(argCase=="realName")
   {
     realName=as.character(value)
