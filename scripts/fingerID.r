@@ -212,7 +212,7 @@ if(file.exists(requiredOutput))
     tmpData<-data.frame(fileName=parentFile,parentMZ=parentmass,parentRT=parentRT,tmpData)
     tmpData<-cbind(data.frame(Name=tmpData[,"name"],
                               "Identifier"=paste("Metabolite_",1:nrow(tmpData),sep=""),
-                              "InChI"=tmpData[,"InChI"]),tmpData)
+                              "InChI"=tmpData[,"InChI"]),score=tmpData[,"CSI.FingerID_Score"],tmpData)
     cat("Writing the results ...\n")
     write.csv(x = tmpData,file = outputCSV)
     cat("Done!\n")
