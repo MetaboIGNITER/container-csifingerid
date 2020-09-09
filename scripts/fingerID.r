@@ -105,8 +105,8 @@ ppmms2Index<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "FragmentPea
 ppm_ms2<-as.numeric(strsplit(splitParams[[1]][[ppmms2Index]],split = "=",fixed=T)[[1]][[2]])
 if(!is.na(PPM_MS2_Overwrite))
   ppm_ms2<-as.numeric(PPM_MS2_Overwrite)
-cat("ppm for MS2 is set to \"",ppm,"\"\n")
-if(is.null(ppm) | is.na(ppm))
+cat("ppm for MS2 is set to \"",ppm_ms2,"\"\n")
+if(is.null(ppm_ms2) | is.na(ppm_ms2))
   stop("MS2 peak relative mass deviation is not defined!")
 
 #### create MS file
