@@ -10,15 +10,27 @@ realName<-NA
 outputCSV<-NA
 tryOffline=F
 PPMOverwrite<-NA
+PPM_MS2_Overwrite<-NA
 DatabaseOverwrite<-NA
 IonizationOverwrite<-NA
+numberofCompounds=10
+timeout=1800 # this is timeout for csi. 
 siriusPath<-"/usr/local/bin/CSI/bin/sirius"
 library(tools)
 for(arg in args)
 {
   argCase<-strsplit(x = arg,split = "=")[[1]][1]
   value<-strsplit(x = arg,split = "=")[[1]][2]
+  if(argCase=="numberofCompounds")
+  {
+    numberofCompounds=as.numeric(value)
+  }
   
+if(argCase=="timeout")
+  {
+    timeout=as.numeric(value)
+  }
+
   if(argCase=="realName")
   {
     realName=as.character(value)
@@ -34,6 +46,10 @@ for(arg in args)
   if(argCase=="ppm")
   {
     PPMOverwrite=as.numeric(value)
+  }
+  if(argCase=="ppmms2")
+  {
+    PPM_MS2_Overwrite=as.numeric(value)
   }
   if(argCase=="database")
   {
@@ -83,6 +99,16 @@ cat("ppm is set to \"",ppm,"\"\n")
 if(is.null(ppm) | is.na(ppm))
   stop("Peak relative mass deviation is not defined!")
 
+# set PPM for MS2
+
+ppmms2Index<-sapply(splitParams,FUN =  function(x){grep(x,pattern = "FragmentPeakMatchRelativeMassDeviation",fixed=T)})
+ppm_ms2<-as.numeric(strsplit(splitParams[[1]][[ppmms2Index]],split = "=",fixed=T)[[1]][[2]])
+if(!is.na(PPM_MS2_Overwrite))
+  ppm_ms2<-as.numeric(PPM_MS2_Overwrite)
+cat("ppm for MS2 is set to \"",ppm,"\"\n")
+if(is.null(ppm) | is.na(ppm))
+  stop("MS2 peak relative mass deviation is not defined!")
+
 #### create MS file
 compound<-basename(inputMSMSparam)
 parentmass<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][3])
@@ -124,43 +150,49 @@ print(inpitToCSIFile)
 outputFolder<-paste(getwd(),"/outputTMP1",sep="")
 
 
-toCSICommand<-paste(siriusPath," --database ", database,
-                    " --fingerid --ppm-max ",ppm," --output ",outputFolder," ",inpitToCSIFile," 2>&1",sep="")
+toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
+                    " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
+                    " formula"," -c ",numberofCompounds," fingerid", " --database ", database, " 2>&1",sep="")
 
 
 cat("Running CSI using", toCSICommand, "\n")
 
 unlink(recursive = T,x = outputFolder)
-t1<-try(system(command = toCSICommand,intern=T))
+t1<-try(system(command = toCSICommand,intern=T,timeout = timeout))
 
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
   cat("Online database is not available now! Trying offline mode!\n")
   unlink(recursive = T,x = outputFolder)
-  toCSICommand<-paste(siriusPath,
-                      " --fingerid --ppm-max ",ppm," --output ",outputFolder," ",inpitToCSIFile," 2>&1",sep="")
+  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
+                      " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
+                      " formula"," -c ",numberofCompounds," fingerid"," 2>&1",sep="")
+  
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T))
+  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
 }
 
 if(any(grepl("just do not use any chemical database and omit the --fingerid option",t1)) & tryOffline==T)
 {
   cat("FingerID is not available now! Trying offline mode without database!\n")
   unlink(recursive = T,x = outputFolder)
-  toCSICommand<-paste(siriusPath,
-                      " --ppm-max ",ppm," --output ",outputFolder," ",inpitToCSIFile," 2>&1",sep="")
+  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
+                      " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
+                      " formula"," -c ",numberofCompounds," 2>&1",sep="")
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T))
+  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
 }
 
 
 if(!is.null(attr(t1,which = "status")) && attr(t1,which = "status")==1){
   cat("::: Error :::\n")
   stop(t1)
+}else if(!is.null(attr(t1,which = "status")) && attr(t1,which = "status")==124){
+cat("Took too long! Nothing will be output!\n")
 }
 
 cat("CSI finished! Trying to load the results ...\n")
-requiredOutput<-(paste(list.dirs(outputFolder,recursive = F),"/","summary_csi_fingerid.csv",sep = ""))
+requiredOutput<-paste(outputFolder,"/","compound_identifications.tsv",sep = "")
 if(file.exists(requiredOutput))
 {
   tmpData<-read.table(requiredOutput,header = T,sep = "\t",quote = "",check.names = F,stringsAsFactors = F,comment.char = "")
@@ -180,7 +212,7 @@ if(file.exists(requiredOutput))
     tmpData<-data.frame(fileName=parentFile,parentMZ=parentmass,parentRT=parentRT,tmpData)
     tmpData<-cbind(data.frame(Name=tmpData[,"name"],
                               "Identifier"=paste("Metabolite_",1:nrow(tmpData),sep=""),
-                              "InChI"=tmpData[,"inchi"]),tmpData)
+                              "InChI"=tmpData[,"InChI"]),tmpData)
     cat("Writing the results ...\n")
     write.csv(x = tmpData,file = outputCSV)
     cat("Done!\n")
@@ -191,4 +223,3 @@ if(file.exists(requiredOutput))
 }else{
   cat("Empty results! Nothing will be written out!\n")
 }
-
