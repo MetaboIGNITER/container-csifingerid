@@ -7,25 +7,44 @@ args <- commandArgs(trailingOnly = TRUE)
 if(length(args)==0)stop("No files have been specified!")
 inputMSMSparam<-NA
 realName<-NA
-outputCSV<-NA
+outputCSV<-"."
 tryOffline=F
 PPMOverwrite<-NA
 PPM_MS2_Overwrite<-NA
 DatabaseOverwrite<-NA
 IonizationOverwrite<-NA
 numberofCompounds=10
-timeout=1800 # this is timeout for csi. 
-siriusPath<-"/usr/local/bin/CSI/bin/sirius"
+numberofCompoundsforIon<-numberofCompounds
+timeout=0 # this is timeout for csi.
+siriusPath<-"sh /usr/local/bin/CSI/bin/sirius.sh"
+sirCores<-2
+canopus<-F
+canopusoutputCSV<-NA
 library(tools)
 for(arg in args)
 {
   argCase<-strsplit(x = arg,split = "=")[[1]][1]
   value<-strsplit(x = arg,split = "=")[[1]][2]
+  if(argCase=="canopusOutput")
+  {
+    canopusoutputCSV=as.character(value)
+  }
+  if(argCase=="canopus")
+  {
+    canopus<-as.logical(value)
+  }
+  if(argCase=="ncores")
+    {
+    sirCores<-as.numeric(value)
+    }
   if(argCase=="numberofCompounds")
   {
     numberofCompounds=as.numeric(value)
   }
-  
+  if(argCase=="numberofCompoundsIon")
+  {
+    numberofCompoundsforIon=as.numeric(value)
+  }
 if(argCase=="timeout")
   {
     timeout=as.numeric(value)
@@ -64,6 +83,7 @@ if(argCase=="timeout")
     outputCSV=as.character(value)
   }
   
+  
 }
 
 
@@ -71,7 +91,33 @@ if(argCase=="timeout")
 tmpdir<-paste(tempdir(),"/",sep="")
 
 setwd(tmpdir)
+inputMSMSparamList<-inputMSMSparam
 
+if(canopus)
+{
+  if(is.na(canopusoutputCSV))
+  {
+    stop("When canopus true, a path for output of canopus must be provided via canopusoutputCSV parameter!")
+  }
+}
+
+if(as.logical(file.info(inputMSMSparam)["isdir"]))
+{
+  inputMSMSparamList<-list.files(inputMSMSparam,full.names = T)
+}
+if(file.exists("toCSI.ms"))
+{
+  file.remove("toCSI.ms")
+}
+if(dir.exists("outputTMP1"))
+{
+  unlink("outputTMP1",recursive = T,force = T)
+}
+
+
+for(inputMSMSparam in inputMSMSparamList)
+{
+  
 
 cat("Loading ",inputMSMSparam,"\n")
 
@@ -136,51 +182,103 @@ collision<-gsub(pattern = ";",replacement = "\n",x = collision,fixed=T)
 cat("Extracting MS2 information ...\n")
 if(is.na(collision) | is.null(collision) | collision=="")
   stop("MS2 ions have not been not found!")
+
+
 cat("Creating MS file ...\n")
 toCSI<-paste(">compound ",compound,"\n",
              ">parentmass ",parentmass,"\n",
-             ">ionization ",ionization,"\n\n",
+             ">ionization ",ionization,"\n",
+             ">MS1MassDeviation.allowedMassDeviation ",ppm," ppm","\n",
+             ">MS2MassDeviation.allowedMassDeviation ",ppm_ms2," ppm\n",
+             ">NumberOfCandidatesPerIon ",numberofCompoundsforIon,"\n",
+             ">StructureSearchDB ",database,"\n",
+             ">Timeout.secondsPerInstance ",timeout,"\n\n",
              ">collision ",collision,"\n",sep = "")
 
-writeLines(toCSI,"toCSI.ms")
+write(toCSI,"toCSI.ms",append = T)
+}
 
+if(!is.numeric(sirCores) & sirCores<1)
+{
+  stop("Number of cores (ncore) but be an integer number higher than 0!")
+}else{
+  cat("Running CSI with",sirCores,"cores\n")
+}
+
+
+if(!is.numeric(timeout) & timeout<0)
+{
+  stop("timeout should be 0 or higher!")
+}else{
+  cat("Running CSI with",timeout,"seconds timeout! Ions taking more than",timeout,"seconds will not be considered (0=unlimited)!\n")
+}
 inpitToCSIFile<-file_path_as_absolute("toCSI.ms")
-print(inpitToCSIFile)
+
 
 outputFolder<-paste(getwd(),"/outputTMP1",sep="")
 
+if(canopus)
+{
+  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                      
+                      " formula"," -c ",numberofCompounds," fingerid canopus", " 2>&1",sep="")
 
-toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
-                    " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
-                    " formula"," -c ",numberofCompounds," fingerid", " --database ", database, " 2>&1",sep="")
+}else{
+  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                      
+                      " formula"," -c ",numberofCompounds," fingerid", " 2>&1",sep="")
+}
 
 
 cat("Running CSI using", toCSICommand, "\n")
 
 unlink(recursive = T,x = outputFolder)
-t1<-try(system(command = toCSICommand,intern=T,timeout = timeout))
+
+
+t1<-try(system(command = toCSICommand,timeout = 0,intern = T))
 
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
-  cat("Online database is not available now! Trying offline mode!\n")
+  stop("Online database is not available now!\n")
   unlink(recursive = T,x = outputFolder)
-  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
-                      " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
-                      " formula"," -c ",numberofCompounds," fingerid"," 2>&1",sep="")
+
+  
+  if(canopus)
+  {
+    toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                        
+                        " formula"," -c ",numberofCompounds," canopus", " 2>&1",sep="")
+
+    
+  }else{
+    toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                        
+                        " formula"," -c ",numberofCompounds,"", " 2>&1",sep="")
+  }
   
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
+  t1 <- try(system(toCSICommand,intern = T,timeout = 0))
 }
 
 if(any(grepl("just do not use any chemical database and omit the --fingerid option",t1)) & tryOffline==T)
 {
   cat("FingerID is not available now! Trying offline mode without database!\n")
   unlink(recursive = T,x = outputFolder)
-  toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " config", 
-                      " --MS1MassDeviation.allowedMassDeviation=\"",ppm," ppm\" "," --MS2MassDeviation.allowedMassDeviation=\"",ppm_ms2," ppm\" ",
-                      " formula"," -c ",numberofCompounds," 2>&1",sep="")
+  if(canopus)
+  {
+    toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                        
+                        " formula"," -c ",numberofCompounds," canopus", " 2>&1",sep="")
+    
+    
+  }else{
+    toCSICommand<-paste(siriusPath," -i ", inpitToCSIFile," --output ",outputFolder, " --cores ",sirCores, " config", 
+                        
+                        " formula"," -c ",numberofCompounds,"", " 2>&1",sep="")
+  }
+
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T,timeout = timeout))
+  t1 <- try(system(toCSICommand,intern = T,timeout = 0))
 }
 
 
@@ -195,31 +293,55 @@ cat("CSI finished! Trying to load the results ...\n")
 requiredOutput<-paste(outputFolder,"/","compound_identifications.tsv",sep = "")
 if(file.exists(requiredOutput))
 {
-  tmpData<-read.table(requiredOutput,header = T,sep = "\t",quote = "",check.names = F,stringsAsFactors = F,comment.char = "")
-  if(nrow(tmpData)!=0)
-  {
-    tmpData[tmpData$name=="\"\"","name"]<-"NONAME"
-    parentRT<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][2])
-    parentFile<-(strsplit(compound,split = "_",fixed = T)[[1]][4])
-    
-    if(parentFile==".txt")
+    CSI_results<-read.table(requiredOutput,header = T,sep = "\t",quote = "",check.names = F,stringsAsFactors = F,comment.char = "")
+    csi_input<-readLines(con = inpitToCSIFile)
+    csi_input<-csi_input[grepl(csi_input,pattern = ">compound ",fixed = T)]
+    csi_input<-gsub(pattern = ">compound ",replacement = "",x = csi_input,fixed = T)
+    for(cid in unique(CSI_results[,"id"]))
     {
-      parentFile<-"NotFound"
+    compound<-gsub(pattern = "[[:digit:]]_toCSI_",replacement = "",x = cid)
+    tmpData<-read.table(paste(outputFolder,"/",cid,"/","structure_candidates.tsv",sep = ""),
+                        header = T,sep = "\t",quote = "",check.names = F,stringsAsFactors = F,comment.char = "")
+ 
+
+   
+    if(nrow(tmpData)!=0)
+    {
+      tmpData[tmpData$name=="\"\"","name"]<-"NONAME"
+      parentRT<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][2])
+      parentMZ<-as.numeric(strsplit(compound,split = "_",fixed = T)[[1]][3])
+      parentFile<-paste((strsplit(compound,split = "_",fixed = T)[[1]][-c(1,2,3)]),collapse = "_")
+      
+      if(parentFile==".txt")
+      {
+        parentFile<-"NotFound"
+      }else{
+        parentFile<-gsub(pattern = ".txt",replacement = "",x = parentFile,fixed = T)
+      }
+      cat("Setting headers required for downstream ...\n")
+      tmpData<-data.frame(fileName=parentFile,parentMZ=parentMZ,parentRT=parentRT,tmpData)
+      tmpData<-cbind(data.frame(Name=tmpData[,"name"],
+                                "Identifier"=paste("Metabolite_",1:nrow(tmpData),sep=""),
+                                "InChI"=tmpData[,"InChI"]),score=tmpData[,"CSI.FingerIDScore"],tmpData)
+      cat("Writing the results ...\n")
+      write.csv(x = tmpData,file = paste(outputCSV,"/",compound,".csv",sep = ""))
+      cat("Done!\n")
     }else{
-      parentFile<-gsub(pattern = ".txt",replacement = "",x = parentFile,fixed = T)
+      cat("Empty results! Nothing will be output!\n")
     }
-    cat("Setting headers required for downstream ...\n")
-    tmpData<-data.frame(fileName=parentFile,parentMZ=parentmass,parentRT=parentRT,tmpData)
-    tmpData<-cbind(data.frame(Name=tmpData[,"name"],
-                              "Identifier"=paste("Metabolite_",1:nrow(tmpData),sep=""),
-                              "InChI"=tmpData[,"InChI"]),score=tmpData[,"CSI.FingerID_Score"],tmpData)
-    cat("Writing the results ...\n")
-    write.csv(x = tmpData,file = outputCSV)
-    cat("Done!\n")
-  }else{
-    cat("Empty results! Nothing will be output!\n")
-  }
-  
+    }
+    
 }else{
   cat("Empty results! Nothing will be written out!\n")
 }
+
+
+requiredOutput<-paste(outputFolder,"/","canopus_summary.tsv",sep = "")
+if(file.exists(requiredOutput) & canopus==T)
+{
+  cat("Loading canopus output ...\n")
+  canopus_results<-read.table(requiredOutput,header = T,sep = "\t",quote = "",check.names = F,stringsAsFactors = F,comment.char = "")
+  write.csv(x = canopus_results,file = canopusoutputCSV)
+  cat("write canopus output ...\n")
+}
+  

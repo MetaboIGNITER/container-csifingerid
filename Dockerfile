@@ -24,7 +24,7 @@ RUN apt-get -y install wget openjdk-11-jdk unzip parallel
 RUN apt-get -y clean && apt-get -y autoremove && rm -rf /var/lib/{cache,log}/ /tmp/* /var/tmp/*
 
 
-ADD sirius-linux64-headless-4.4.29 /usr/local/bin/CSI
+ADD sirius-4.5.1 /usr/local/bin/CSI
 
 ADD scripts/*.r /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.r
