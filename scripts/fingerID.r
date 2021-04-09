@@ -235,7 +235,7 @@ cat("Running CSI using", toCSICommand, "\n")
 unlink(recursive = T,x = outputFolder)
 
 
-t1<-try(system(command = toCSICommand,timeout = 0,intern = T))
+t1<-try(system(command = toCSICommand,intern = T))
 
 if(any(grepl("remove the database flags -d or --database because database",t1)) & tryOffline==T)
 {
@@ -257,7 +257,7 @@ if(any(grepl("remove the database flags -d or --database because database",t1)) 
   }
   
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T,timeout = 0))
+  t1 <- try(system(toCSICommand,intern = T))
 }
 
 if(any(grepl("just do not use any chemical database and omit the --fingerid option",t1)) & tryOffline==T)
@@ -278,7 +278,7 @@ if(any(grepl("just do not use any chemical database and omit the --fingerid opti
   }
 
 cat("Running CSI using", toCSICommand, "\n")
-  t1 <- try(system(toCSICommand,intern = T,timeout = 0))
+  t1 <- try(system(toCSICommand,intern = T))
 }
 
 
